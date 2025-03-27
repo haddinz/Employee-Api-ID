@@ -1,11 +1,7 @@
 using AutoMapper;
-using EmployeeApi.Data;
 using EmployeeApi.DTO.Request;
 using EmployeeApi.Models.Entity;
 using EmployeeApi.Models.Interface;
-using EmployeeApi.Models.Repository;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -15,13 +11,11 @@ namespace EmployeeApi.Controllers;
 [ApiController]
 public class EmployeeController : ControllerBase
 {
-    private readonly ApplicationDbContext _context;
     private readonly IMapper _mapper;
     private readonly IEmployeeRepository _repository;
 
-    public EmployeeController(ApplicationDbContext context, IMapper mapper, IEmployeeRepository repository)
+    public EmployeeController(IMapper mapper, IEmployeeRepository repository)
     {
-        _context = context;
         _mapper = mapper;
         _repository = repository;
     }
@@ -30,14 +24,14 @@ public class EmployeeController : ControllerBase
     [HttpGet]
     public async Task<ActionResult<IEnumerable<Employee>>> GetEmployees()
     {
-        return await _context.Employees.ToListAsync();
+        var employee = await _repository.GetAllAsync();
+        return Ok(employee);
     }
 
     // GET: api/Employee/{id}
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<Employee>> GetEmployee(Guid id)
     {
-        // var employee = await _context.Employees.FindAsync(id);
         var employee = await _repository.GetByIdAsync(id);
 
         if (employee == null) return NotFound();
@@ -49,21 +43,10 @@ public class EmployeeController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<Employee>> CreateEmployee(EmployeeReq dto)
     {
-        //make it simple using auto mapper
-        // var employee = new Employee
-        // {
-        //     Id = Guid.NewGuid(),
-        //     Name = dto.Name,
-        //     Email = dto.Email,
-        //     Username = dto.Username,
-        //     Address = dto.Address
-        // };
-
         var employee = _mapper.Map<Employee>(dto);
         employee.Id = Guid.NewGuid();
 
-        _context.Employees.Add(employee);
-        await _context.SaveChangesAsync();
+        await _repository.CreateAsync(employee);
 
         return CreatedAtAction(nameof(GetEmployee), new { id = employee.Id }, employee);
     }
@@ -76,21 +59,17 @@ public class EmployeeController : ControllerBase
             return BadRequest(new { Status = "Error", Message = "Invalid data provided.", Errors = ModelState });
         }
 
-        var employee = await _context.Employees.FindAsync(id);
+        var employeeId = await _repository.GetByIdAsync(id);
 
-        if (employee == null)
-        {
+        if (employeeId == null){
             return NotFound(new { Status = "Error", Message = "Employee not found." });
         }
 
-        employee.Name = dto.Name;
-        employee.Email = dto.Email;
-        employee.Username = dto.Username;
-        employee.Address = dto.Address;
+        var employee = _mapper.Map<Employee>(dto);
 
         try
         {
-            await _context.SaveChangesAsync();
+            await _repository.UpdateAsync(employee);
         }
         catch (DbUpdateConcurrencyException)
         {
@@ -104,14 +83,13 @@ public class EmployeeController : ControllerBase
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> DeleteEmployee(Guid id)
     {
-        var employee = await _context.Employees.FindAsync(id);
+        var employee = await _repository.GetByIdAsync(id);
         if (employee == null)
         {
             return NotFound();
         }
 
-        _context.Employees.Remove(employee);
-        await _context.SaveChangesAsync();
+        await _repository.DeleteAsync(id);
 
         return NoContent();
     }

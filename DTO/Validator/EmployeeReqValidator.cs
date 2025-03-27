@@ -14,6 +14,10 @@ public class EmployeeReqValidator : AbstractValidator<EmployeeReq> {
             .EmailAddress().WithMessage("Invalid email format.")
             .MaximumLength(150).WithMessage("Email cannot exceed 150 characters.");
 
+        RuleFor(x => x.Password)
+            .NotEmpty().WithMessage("Password is required.")
+            .MinimumLength(8).WithMessage("Password mush more than 8 character.");
+
         RuleFor(x => x.Username)
             .MaximumLength(50).WithMessage("Username cannot exceed 50 characters.");
 
