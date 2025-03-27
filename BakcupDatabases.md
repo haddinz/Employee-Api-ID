@@ -1,0 +1,1 @@
+"DefaultConnection": "Server=localhost;Database=employee_dotnet;User=root;Password=123;"
