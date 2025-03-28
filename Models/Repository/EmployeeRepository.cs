@@ -20,6 +20,10 @@ public class EmployeeRepository : IEmployeeRepository {
         return await _context.Employees.FindAsync(id);
     }
 
+    public async Task<Employee?> GetByEmailAsync(String email){
+        return await _context.Employees.FirstOrDefaultAsync(e => e.Email == email);
+    }
+
     public async Task CreateAsync(Employee dto) {
         _context.Employees.Add(dto);
         await _context.SaveChangesAsync();
